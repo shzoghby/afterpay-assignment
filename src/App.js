@@ -5,13 +5,41 @@ function App() {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const apiKey = process.env.REACT_APP_AIRTABLE_API_KEY;
+  const apiBaseURL = process.env.REACT_APP_AIRTABLE_BASE_URL;
+
+  const fetchData = async () => {
+    try {
+      const response = await fetch(`${apiBaseURL}/Customer`, {
+        method: 'GET', // Specify the method
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const result = await response.json(); // Parse the JSON response
+      for (const customer of result.records) {
+        await loadCustomerOrders(customer);
+      }
+
+      const customerDetails = loadCustomersListForDisplay(result.records);
+      //console.log(customerDetails);
+      setData(customerDetails); // Update the state with the returned data
+    } catch (err) {
+      setError(err.message); // Handle errors
+    } finally {
+      setIsLoading(false); // Set loading to false once complete
+    }
+  };
 
   const getOrderDetails = async (orderId) => {
     try {
       const response = await fetch(`https://api.airtable.com/v0/appkiyOFHuK6cTHVl/Order/${orderId}`, {
         method: 'GET', // Specify the method
         headers: {
-          'Authorization': 'Bearer patvgnt8tOC6pMTbU.bfef0bd1b8449fac507dc9197cb6bd41cfdb8d1488afcded4a23a1a730071a91', // Inform the server about the content type
+          'Authorization': `Bearer ${apiKey}`
         },
       });
 
@@ -78,31 +106,7 @@ function App() {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('https://api.airtable.com/v0/appkiyOFHuK6cTHVl/Customer', {
-          method: 'GET', // Specify the method
-          headers: {
-            'Authorization': 'Bearer patvgnt8tOC6pMTbU.bfef0bd1b8449fac507dc9197cb6bd41cfdb8d1488afcded4a23a1a730071a91', // Inform the server about the content type
-          },
-        });
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const result = await response.json(); // Parse the JSON response
-        for (const customer of result.records) {
-          await loadCustomerOrders(customer);
-        }
 
-        const customerDetails = loadCustomersListForDisplay(result.records);
-        //console.log(customerDetails);
-        setData(customerDetails); // Update the state with the returned data
-      } catch (err) {
-        setError(err.message); // Handle errors
-      } finally {
-        setIsLoading(false); // Set loading to false once complete
-      }
-    };
 
     fetchData();
   }, []); // Empty dependency array ensures it runs once
